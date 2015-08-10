@@ -221,7 +221,8 @@ class CollectorTestCase(unittest.TestCase):
 collectorTests = {}
 
 
-def getCollectorTests(path):
+def getTests(path):
+    local_tests = {}
     for f in os.listdir(path):
         cPath = os.path.abspath(os.path.join(path, f))
 
@@ -234,7 +235,7 @@ def getCollectorTests(path):
             modname = f[:-3]
             try:
                 # Import the module
-                collectorTests[modname] = __import__(modname,
+                local_tests[modname] = __import__(modname,
                                                      globals(),
                                                      locals(),
                                                      ['*'])
@@ -246,7 +247,21 @@ def getCollectorTests(path):
     for f in os.listdir(path):
         cPath = os.path.abspath(os.path.join(path, f))
         if os.path.isdir(cPath):
-            getCollectorTests(cPath)
+            local_tests.update(getTests(cPath))
+
+    return local_tests
+
+def loadTests(tests):
+    t = []
+    loader = unittest.TestLoader()
+
+    for test in tests:
+        for name, c in inspect.getmembers(tests[test],
+                                          inspect.isclass):
+            if not issubclass(c, unittest.TestCase):
+                continue
+            t.append(loader.loadTestsFromTestCase(c))
+    return t
 
 ###############################################################################
 
@@ -285,21 +300,22 @@ if __name__ == "__main__":
                                          'src',
                                          'diamond'))
 
-    getCollectorTests(cPath)
+    hpath = os.path.abspath(os.path.join(os.getcwd(),
+                                         'src',
+                                         'diamond',
+                                         'handler'))
+
+    collectorTests = getTests(cPath)
+    tests = loadTests(collectorTests)
 
     if not options.collector:
-        # Only pull in diamond tests when a specific collector
+        # Only pull in diamond and handler tests when a specific collector
         # hasn't been specified
-        getCollectorTests(dPath)
+        diamondTests = getTests(dPath)
+        tests += loadTests(diamondTests)
+        handlerTests = getTests(hpath)
+        tests += loadTests(handlerTests)
 
-    loader = unittest.TestLoader()
-    tests = []
-    for test in collectorTests:
-        for name, c in inspect.getmembers(collectorTests[test],
-                                          inspect.isclass):
-            if not issubclass(c, unittest.TestCase):
-                continue
-            tests.append(loader.loadTestsFromTestCase(c))
     suite = unittest.TestSuite(tests)
     results = unittest.TextTestRunner(verbosity=options.verbose).run(suite)
 

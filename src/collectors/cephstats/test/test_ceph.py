@@ -3,8 +3,6 @@ import os
 import sys
 
 curdir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(curdir)
-sys.path.insert(0, '../')
 
 import unittest
 import re
@@ -39,7 +37,7 @@ class TestCeph(unittest.TestCase):
         """
         Get ceph information from sample data
         """
-        f = open('sample.txt')
+        f = open(os.path.join(curdir,'sample.txt'))
         self.assertEqual(get_ceph_info(f.read()), ('8643', '4821', '481'))
         f.close()
 
