@@ -218,8 +218,6 @@ class CollectorTestCase(unittest.TestCase):
 
         mock.reset_mock()
 
-collectorTests = {}
-
 
 def getTests(path):
     local_tests = {}
